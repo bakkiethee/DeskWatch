@@ -177,12 +177,23 @@
       '<div><span class="l">Uptime</span><span' + (fresh ? ' class="warn-text"' : '') + '>' + uptime(s.uptime_s) + '</span></div>' +
       '<div><span class="l">Temp</span><span>' + (s.cpu_temp_c == null ? '--' : Math.round(s.cpu_temp_c) + ' &deg;C') + '</span></div>' +
       (s.gpu_temp_c == null ? '' : '<div><span class="l">GPU temp</span><span>' + Math.round(s.gpu_temp_c) + ' &deg;C</span></div>') +
+      (s.updates_pending == null ? '' : updatesCell(s)) +
       '<div><span class="l">Load</span><span>' + load + '</span></div>' +
       '<div><span class="l">Net in</span><span>' + (s.net ? rate(s.net.rx_bps) : '--') + '</span></div>' +
       '<div><span class="l">Net out</span><span>' + (s.net ? rate(s.net.tx_bps) : '--') + '</span></div>' +
       '<div><span class="l">Cores</span><span>' + (s.cpu_count == null ? '--' : s.cpu_count) + '</span></div>' +
       '</div><div class="sparkhead"><span>CPU' + (gpuHistory[host.name] && gpuHistory[host.name].some(function (g) { return g != null; }) ? ' <span class="gpu-key">&amp; GPU</span>' : '') + ' &middot; ' + spanLabel(vals.length) + '</span><span>PEAK ' + peak + '</span></div>' +
       sparkline(vals, gpuHistory[host.name]);
+  }
+
+  // OS updates of a host that reports them: "Updates  21 (13 security)", amber
+  // when security updates wait, with a reboot note when the host asks for one.
+  function updatesCell(s) {
+    var text = String(s.updates_pending);
+    if (s.updates_pending > 0 && s.updates_security > 0) text += ' (' + s.updates_security + ' security)';
+    if (s.reboot_required) text += ' &middot; reboot';
+    var warn = s.updates_security > 0 || s.reboot_required;
+    return '<div><span class="l">Updates</span><span' + (warn ? ' class="warn-text"' : '') + '>' + text + '</span></div>';
   }
 
   // How much time the graph covers: one reading per 5 s, at most HISTORY.

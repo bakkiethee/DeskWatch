@@ -88,6 +88,18 @@ async fn mock_prometheus(queries: &Queries, mock: Arc<Mock>) -> String {
             queries.uptime_s.clone(),
             include_str!("testdata/uptime_s.json"),
         ),
+        (
+            queries.updates_pending.clone(),
+            include_str!("testdata/updates_pending.json"),
+        ),
+        (
+            queries.updates_security.clone(),
+            include_str!("testdata/updates_security.json"),
+        ),
+        (
+            queries.reboot_required.clone(),
+            include_str!("testdata/reboot_required.json"),
+        ),
         (queries.net_rx.clone(), include_str!("testdata/net_rx.json")),
         (queries.net_tx.clone(), include_str!("testdata/net_tx.json")),
         (
@@ -160,6 +172,9 @@ async fn collects_stats_for_every_host() {
     assert_eq!(stats.gpu_mem_pct, Some(41.3));
     assert_eq!(stats.gpu_temp_c, Some(66.4));
     assert_eq!(stats.uptime_s, Some(1_234_567));
+    assert_eq!(stats.updates_pending, Some(21));
+    assert_eq!(stats.updates_security, Some(13));
+    assert_eq!(stats.reboot_required, Some(true));
     let net = stats.net.as_ref().unwrap();
     assert_eq!(net.iface, "eth0", "the busiest device wins");
     assert_eq!((net.rx_bps, net.tx_bps), (Some(5000), Some(1200)));
@@ -172,7 +187,7 @@ async fn collects_stats_for_every_host() {
     assert_eq!(nas.stats.net, None);
 
     // One query per field, not per host, and the token went with each.
-    assert_eq!(mock.queries.lock().unwrap().len(), 14);
+    assert_eq!(mock.queries.lock().unwrap().len(), 17);
     assert!(
         mock.auth
             .lock()
@@ -315,7 +330,7 @@ async fn skips_container_query_without_expectations() {
     let url = mock_prometheus(&queries, mock.clone()).await;
     let api = HttpApi::new(&url, None).unwrap();
     let report = collect(&api, &queries, &config.hosts).await.unwrap();
-    assert_eq!(mock.queries.lock().unwrap().len(), 13);
+    assert_eq!(mock.queries.lock().unwrap().len(), 16);
     // Only the dead host is down.
     assert_eq!(report.down.len(), 1);
     assert!(mock.auth.lock().unwrap().iter().all(Option::is_none));

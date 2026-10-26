@@ -145,6 +145,14 @@ pub struct StatsData {
     pub gpu_mem_pct: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gpu_temp_c: Option<f32>,
+    /// OS updates are left out of the snapshot when the host does not report them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updates_pending: Option<u32>,
+    /// How many of the pending updates are security updates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updates_security: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reboot_required: Option<bool>,
     pub uptime_s: Option<u64>,
     pub net: Option<NetData>,
 }

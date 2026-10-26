@@ -9,6 +9,10 @@ All notable changes to DeskWatch are listed here. The format follows
 
 ### Added
 
+- **Pending OS updates on the host card.** A Prometheus host that exposes the node-exporter textfile collector's
+  `apt_upgrades_pending` (and `node_reboot_required`) gets an **Updates** line, such as `21 (13 security)`, amber when
+  security updates wait or a reboot is needed. `updates_pending`, `updates_security` and `reboot_required` can be
+  replaced under `queries`. Hosts without those metrics show nothing extra.
 - **`[server] enabled = false` hides the bridge's own machine** from the dashboard, with a **Show this machine's own
   stats** switch under **Dashboard hosts** on the setup page (it applies after a restart). For a bridge in Docker
   whose Prometheus source already covers the machine, so the container's own numbers no longer show as a second host.

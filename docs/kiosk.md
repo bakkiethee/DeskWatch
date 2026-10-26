@@ -61,6 +61,15 @@ NVIDIA DCGM exporter by default; `gpu_pct`, `gpu_mem_pct` and `gpu_temp_c` can b
 ([install.md](install.md#prometheus-host-stats-and-containers)). The bridge machine itself reads AMD GPUs from sysfs;
 Intel and NVIDIA GPUs on the bridge machine need a Prometheus host. Not yet tried on a real GPU.
 
+### OS updates on the host card
+
+A Prometheus host that exposes pending apt updates gets an **Updates** line on its card, for example `21 (13 security)`,
+in amber when security updates wait or the host asks for a reboot (`· reboot`). The defaults read the metrics of the
+node-exporter textfile collector's `apt.sh` script: `apt_upgrades_pending` (its `origin` label decides what counts as
+security) and `node_reboot_required`. Replace `updates_pending`, `updates_security` and `reboot_required` per host under
+`queries` ([install.md](install.md#prometheus-host-stats-and-containers)) for other metric names. Hosts that do not report
+them show no line.
+
 ### Hosts: detailed or compact
 
 The built-in layout has one **Hosts** panel, two cells wide and two tall. In the `detailed` view (the default) a list

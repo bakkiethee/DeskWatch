@@ -37,7 +37,7 @@ use api::{HttpApi, Sample};
 pub const KIND: &str = "prometheus";
 
 /// Stats fields whose PromQL can be replaced in the config (`queries = { ... }`).
-pub const QUERY_KEYS: [&str; 9] = [
+pub const QUERY_KEYS: [&str; 12] = [
     "cpu_pct",
     "cpu_temp_c",
     "cpu_count",
@@ -47,6 +47,9 @@ pub const QUERY_KEYS: [&str; 9] = [
     "gpu_mem_pct",
     "gpu_temp_c",
     "uptime_s",
+    "updates_pending",
+    "updates_security",
+    "reboot_required",
 ];
 
 /// A container counts as down when cAdvisor has not seen it for this long.
@@ -164,6 +167,12 @@ pub struct Queries {
     pub gpu_mem_pct: String,
     pub gpu_temp_c: String,
     pub uptime_s: String,
+    /// OS update queries follow the node-exporter textfile collector's
+    /// `apt.sh` (`apt_upgrades_pending`, `node_reboot_required`); hosts
+    /// without that script return no data and the row stays hidden.
+    pub updates_pending: String,
+    pub updates_security: String,
+    pub reboot_required: String,
     pub net_rx: String,
     pub net_tx: String,
     /// Seconds since cAdvisor last saw each named container.
@@ -218,6 +227,18 @@ impl Queries {
                 "max by (instance) (DCGM_FI_DEV_GPU_TEMP)".into(),
             ),
             uptime_s: pick("uptime_s", "time() - node_boot_time_seconds".into()),
+            updates_pending: pick(
+                "updates_pending",
+                "sum by (instance) (apt_upgrades_pending)".into(),
+            ),
+            updates_security: pick(
+                "updates_security",
+                "sum by (instance) (apt_upgrades_pending{origin=~\"(?i).*security.*\"})".into(),
+            ),
+            reboot_required: pick(
+                "reboot_required",
+                "max by (instance) (node_reboot_required)".into(),
+            ),
             net_rx: format!(
                 "sum by (instance, device) (rate(node_network_receive_bytes_total{{{device}}}[1m]))"
             ),
@@ -243,6 +264,9 @@ pub struct Answers {
     pub gpu_mem_pct: Vec<Sample>,
     pub gpu_temp_c: Vec<Sample>,
     pub uptime_s: Vec<Sample>,
+    pub updates_pending: Vec<Sample>,
+    pub updates_security: Vec<Sample>,
+    pub reboot_required: Vec<Sample>,
     pub net_rx: Vec<Sample>,
     pub net_tx: Vec<Sample>,
     /// Empty unless a host lists `expect_containers`.
@@ -277,6 +301,9 @@ pub async fn collect(
         gpu_mem_pct: ask("gpu_mem_pct", &queries.gpu_mem_pct).await?,
         gpu_temp_c: ask("gpu_temp_c", &queries.gpu_temp_c).await?,
         uptime_s: ask("uptime_s", &queries.uptime_s).await?,
+        updates_pending: ask("updates_pending", &queries.updates_pending).await?,
+        updates_security: ask("updates_security", &queries.updates_security).await?,
+        reboot_required: ask("reboot_required", &queries.reboot_required).await?,
         net_rx: ask("net_rx", &queries.net_rx).await?,
         net_tx: ask("net_tx", &queries.net_tx).await?,
         container_age: Vec::new(),
@@ -331,6 +358,11 @@ fn host_stats(host: &HostConfig, answers: &Answers) -> StatsData {
         gpu_mem_pct: value(&answers.gpu_mem_pct).map(percent),
         gpu_temp_c: value(&answers.gpu_temp_c).map(round1),
         uptime_s: value(&answers.uptime_s).map(|s| s.max(0.0) as u64),
+        updates_pending: value(&answers.updates_pending).map(|n| n.max(0.0).round() as u32),
+        // A host with no security series has none pending, once it reports updates at all.
+        updates_security: value(&answers.updates_pending)
+            .map(|_| value(&answers.updates_security).map_or(0, |n| n.max(0.0).round() as u32)),
+        reboot_required: value(&answers.reboot_required).map(|v| v >= 1.0),
         net: net(&answers.net_rx, &answers.net_tx, instance),
     }
 }

@@ -82,6 +82,9 @@ impl StatsCollector {
             gpu_pct: gpu.pct,
             gpu_mem_pct: gpu.mem_pct,
             gpu_temp_c: gpu.temp_c,
+            updates_pending: None,
+            updates_security: None,
+            reboot_required: None,
             uptime_s: read("/proc/uptime").as_deref().and_then(parse_uptime),
             net: self.sample_net(),
         }
